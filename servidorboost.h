@@ -29,8 +29,19 @@ public:
 
 private:
     void disconnectUser(asio::ip::tcp::socket* userSock);
+    void tratarMensagem(Mensagem &msg);
+    void sendMsg(asio::ip::tcp::socket *userSock, Mensagem &msg);
+
+    void addNickname(asio::ip::tcp::socket *userSock, std::string* nick);
+    std::string* nickname(asio::ip::tcp::socket *userSock);
+
+    asio::ip::tcp::socket* socketOrigem(Mensagem &msg);
+
 
 private:
+    const std::string BROADCAST_KEY = "$$$";
+    const std::string BROADCAST_CONECTADO = "$c$";
+    const std::string BROADCAST_DESCONECTADO = "$d$";
 
     asio::io_service mIos;
     asio::ip::tcp::acceptor *mAcceptor;
