@@ -53,12 +53,12 @@ private:
 
 private:
 
-    std::string mCabecalho;
-    std::string mCorpo;
+    std::string mCabecalho = "";
+    std::string mCorpo = "";
 
-    std::string mOrigem;
-    std::string mDestino;
-    std::string mMensagem;
+    std::string mOrigem = "";
+    std::string mDestino = "";
+    std::string mMensagem = "";
 
 };
 

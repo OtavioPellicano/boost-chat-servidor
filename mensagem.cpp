@@ -25,6 +25,8 @@ std::string Mensagem::cabecalho() const
 void Mensagem::setCabecalho(const std::string &origem, const std::string &destino)
 {
     mCabecalho = "#" + origem + "#" + destino + "#:";
+    mOrigem = origem;
+    mDestino = destino;
 }
 
 std::string Mensagem::corpo() const
@@ -35,6 +37,7 @@ std::string Mensagem::corpo() const
 void Mensagem::setCorpo(const std::string &corpo)
 {
     mCorpo = corpo;
+    mMensagem = corpo;
 }
 
 std::string Mensagem::mensagemEstruturada()
@@ -118,7 +121,8 @@ void Mensagem::setMensagem(const std::string &msg)
 
 bool Mensagem::empty() const
 {
-    if(origem().empty() && destino().empty() && corpo().empty())
+
+    if(origem().empty() && destino().empty() && mensagem().empty())
         return true;
 
     return false;
