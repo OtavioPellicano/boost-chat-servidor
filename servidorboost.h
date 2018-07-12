@@ -22,6 +22,7 @@ class ServidorBoost
 
 private:
     enum delay{
+        min = 100,
         max = 200
     };
 

@@ -48,8 +48,6 @@ void ServidorBoost::readyReadLoop()
                         std::istream inputStream(&buf);
                         std::getline(inputStream, strMsg);
 
-                        std::cout << "Coloquei na pilha: " << strMsg << std::endl;
-
                         mMsgQueue.push(pairSock_ptrStr(itMapSockNick->first, strMsg));
 
                     }
@@ -99,16 +97,13 @@ void ServidorBoost::messageQueueLoop()
                     break;
                 }
 
-
             }
             mMtx.unlock();
-
 
             mMtx.lock();
             mMsgQueue.pop();
             mMtx.unlock();
         }
-        //std::cout << "message Queue" << std::endl;
         boost::this_thread::sleep( boost::posix_time::millisec(delay::max));
     }
 }
@@ -126,7 +121,7 @@ void ServidorBoost::logQueueLoop()
             mLogQueue.pop();    //não preciso dar lock aqui, essa fila só será utilizada por uma thread
         }
 
-        //Para casa haja multiplos salvamentos
+        //Para caso haja multiplos salvamentos
         boost::this_thread::sleep( boost::posix_time::millisec(delay::max));
     }
 }
@@ -134,8 +129,6 @@ void ServidorBoost::logQueueLoop()
 void ServidorBoost::disconnectUser(asio::ip::tcp::socket *userSock)
 {
 
-
-    std::cout << "desconectando antes do for..." << std::endl;
     std::map<asio::ip::tcp::socket*, std::string*>::iterator itMap = mMapSockNickname.begin();
     for(;itMap != mMapSockNickname.end(); ++itMap)
     {
@@ -145,15 +138,11 @@ void ServidorBoost::disconnectUser(asio::ip::tcp::socket *userSock)
         }
     }
 
-    std::cout << "desconectando antes do shtdown..." << std::endl;
     sendBroadcast(userSock, "teste", DESCONECTADO);
     userSock->shutdown(asio::ip::tcp::socket::shutdown_both);
     userSock->close();
 
-    std::cout << "desconectando antes do erase..." << std::endl;
     mMapSockNickname.erase(itMap);
-
-    std::cout << "desconectado" << std::endl;
 
     std::cout << "Quantidade de usuários no map: " << mMapSockNickname.size() << std::endl;
 
@@ -164,6 +153,7 @@ void ServidorBoost::sendMsg(asio::ip::tcp::socket* userSock, Mensagem &msg)
 {
 
     asio::write(*userSock, asio::buffer(msg.mensagemEstruturada()));
+    boost::this_thread::sleep(boost::posix_time::millisec(delay::min));
 }
 
 bool ServidorBoost::addNickname(asio::ip::tcp::socket* userSock, std::string* nick)
@@ -173,7 +163,6 @@ bool ServidorBoost::addNickname(asio::ip::tcp::socket* userSock, std::string* ni
 
     if(validarNickname(*nick))
     {
-        std::cout << "Adding nickname" << *nick << std::endl;
         //caso nao exista o nickname na sala
         msg.setCabecalho(*nick, "");
         msg.setCorpo("");
@@ -186,7 +175,6 @@ bool ServidorBoost::addNickname(asio::ip::tcp::socket* userSock, std::string* ni
     if(msg.empty())
     {
         result = false;
-        std::cout << "desconectando..." << std::endl;
         disconnectUser(userSock);
     }
 
