@@ -49,13 +49,15 @@ void ServidorBoost::readyReadLoop()
                         std::istream inputStream(&buf);
                         std::getline(inputStream, strMsg);
 
-                        if(strMsg.find("exit") != std::string::npos)
-                        {
-                            disconnectUser(itMapSockNick->first);
-                        }
+//                        if(strMsg.find("exit") != std::string::npos)
+//                        {
+//                            disconnectUser(itMapSockNick->first);
+//                            break;
+//                        }
 
                         std::cout << "Coloquei na pilha: " << strMsg << std::endl;
-                        mMsgQueue.push(strMsg);
+
+                        mMsgQueue.push(pairSock_ptrStr(itMapSockNick->first, strMsg));
 
                     }
             }
@@ -71,9 +73,43 @@ void ServidorBoost::messageQueueLoop()
     {
         if(!mMsgQueue.empty())
         {
-            Mensagem msg(mMsgQueue.front());
+            auto nextSockMsg = mMsgQueue.front();
 
-            tratarMensagem(msg);
+            Mensagem msg(nextSockMsg.second);
+
+            mMtx.lock();
+            for(auto itSockUser = mMapSockNickname.begin(); itSockUser != mMapSockNickname.end(); ++itSockUser)
+            {
+                //validando e add nickname
+                if(!msg.origem().empty() && msg.destino().empty() && msg.mensagem().empty())
+                {
+                    if(addNickname(nextSockMsg.first, new std::string(msg.origem())))
+                    {
+                        //enviando broadcast para os outros usuários
+                        sendBroadcast(nextSockMsg.first, msg.origem(), CONECTADO);
+
+                    }
+                    break;
+                }
+
+                //redirecionando mensagem
+                if(!msg.origem().empty() && !msg.destino().empty() && !msg.mensagem().empty())
+                {
+                    redirecionarMensagem(msg.origem(), msg.destino(), msg.mensagem());
+                    break;
+                }
+
+                //desconectando usuário
+                if(msg.origem().empty() && msg.destino().empty() && msg.mensagem().empty())
+                {
+                    disconnectUser(nextSockMsg.first);
+                    break;
+                }
+
+
+            }
+            mMtx.unlock();
+
 
             mMtx.lock();
             mMsgQueue.pop();
@@ -99,67 +135,19 @@ void ServidorBoost::disconnectUser(asio::ip::tcp::socket *userSock)
     }
 
     std::cout << "desconectando antes do shtdown..." << std::endl;
+    sendBroadcast(userSock, "teste", DESCONECTADO);
     userSock->shutdown(asio::ip::tcp::socket::shutdown_both);
     userSock->close();
 
     std::cout << "desconectando antes do erase..." << std::endl;
     mMapSockNickname.erase(itMap);
 
-    std::cout << "desconectando antes do delete nickname..." << std::endl;
-//    delete &itMap->second;  //desalocando nickname
-    std::cout << "desconectando antes do delete socket" << std::endl;
-//    delete &itMap->first;   //desalocando socket
-
     std::cout << "desconectado" << std::endl;
-
 
     std::cout << "Quantidade de usuários no map: " << mMapSockNickname.size() << std::endl;
 
-
-
 }
 
-void ServidorBoost::tratarMensagem(Mensagem &msg)
-{
-
-    //nickname validação
-    /**
-     * @brief The Mensagem class
-     * Organiza o corpo e o cabecalho da mensagem
-     *
-     * Padroes de envio:
-     *
-     * #origem#destino#:mensagem    //padrão
-     *
-     * #origem##:                   //confirmação de nickname
-     *
-     * #$$$$#$c$#:user1;user2;user3 //brodcast para usuário conectado
-     *
-     * #$$$$#$d$#:user1;user2;user3 //broadcast para usuário desconectado
-     *
-     * ###:                         //nickname invalido ou qualquer msg invalida
-     *
-     */
-    //mensagem fora da estrutura
-
-
-    mMtx.lock();
-    for(auto itMapSockNick = mMapSockNickname.begin(); itMapSockNick != mMapSockNickname.end(); ++itMapSockNick)
-    {
-        //validando nickname
-        if(!msg.origem().empty() && msg.destino().empty() && msg.mensagem().empty())
-        {
-            std::cout << "tratar mensagem dentro do if" << std::endl;
-            addNickname(itMapSockNick->first, new std::string(msg.origem()));
-
-            break;
-        }
-    }
-    mMtx.unlock();
-
-
-    std::cout << msg.mensagemEstruturada() << std::endl;
-}
 
 void ServidorBoost::sendMsg(asio::ip::tcp::socket* userSock, Mensagem &msg)
 {
@@ -167,33 +155,36 @@ void ServidorBoost::sendMsg(asio::ip::tcp::socket* userSock, Mensagem &msg)
     asio::write(*userSock, asio::buffer(msg.mensagemEstruturada()));
 }
 
-void ServidorBoost::addNickname(asio::ip::tcp::socket* userSock, std::string* nick)
+bool ServidorBoost::addNickname(asio::ip::tcp::socket* userSock, std::string* nick)
 {
     Mensagem msg;
+    bool result;
 
-
-    if(*nickname(userSock) == "")
+    if(validarNickname(*nick))
     {
         std::cout << "Adding nickname" << *nick << std::endl;
         //caso nao exista o nickname na sala
         msg.setCabecalho(*nick, "");
         msg.setCorpo("");
         mMapSockNickname[userSock] = nick;
+        result = true;
     }
 
     sendMsg(userSock, msg);
 
     if(msg.empty())
     {
+        result = false;
         std::cout << "desconectando..." << std::endl;
         disconnectUser(userSock);
     }
+
+    return result;
 
 }
 
 std::string *ServidorBoost::nickname(asio::ip::tcp::socket *userSock)
 {
-    std::cout << "procurando nickname" << std::endl;
     auto itMap = mMapSockNickname.begin();
     for(; itMap != mMapSockNickname.end(); ++itMap)
     {
@@ -201,22 +192,80 @@ std::string *ServidorBoost::nickname(asio::ip::tcp::socket *userSock)
             break;
     }
 
-    std::cout << "achei nickname: " << *itMap->second << std::endl;
-
-
     return itMap->second;
 }
 
-asio::ip::tcp::socket *ServidorBoost::socketOrigem(Mensagem &msg)
-{
-    mMtx.lock();
-    auto itMap = mMapSockNickname.begin();
-    for(; itMap != mMapSockNickname.end(); ++itMap)
-    {
-        if(*(itMap->second) == msg.origem())
-            break;
-    }
-    mMtx.unlock();
 
-    return itMap->first;
+bool ServidorBoost::validarNickname(const std::string &nick)
+{
+
+    for(auto itMap = mMapSockNickname.begin(); itMap != mMapSockNickname.end(); ++itMap)
+    {
+        if(*(itMap->second) == nick)
+            return false;
+    }
+
+    return true;
+}
+
+void ServidorBoost::sendBroadcast(asio::ip::tcp::socket *sock, const std::string& org, const ServidorBoost::tipoConexao &tipo)
+{
+    using std::string;
+    Mensagem msg;
+
+    if(tipo == CONECTADO)
+    {
+        msg.setCabecalho(org, BROADCAST_CONECTADO);
+    }
+    else
+    {
+        msg.setCabecalho(org, BROADCAST_DESCONECTADO);
+    }
+
+    //carregando mensagens
+    string strMsg;
+    for(auto itSockNick = mMapSockNickname.begin(); itSockNick != mMapSockNickname.end(); ++itSockNick)
+    {
+        if(itSockNick->first != sock)
+        {
+            strMsg += *itSockNick->second + ";";
+        }
+    }
+    strMsg += org;
+    msg.setCorpo(strMsg);
+
+    //Enviando broadcast
+    for(auto itSockNick = mMapSockNickname.begin(); itSockNick != mMapSockNickname.end(); ++itSockNick)
+    {
+        sendMsg(itSockNick->first, msg);
+    }
+
+}
+
+void ServidorBoost::redirecionarMensagem(const std::string &org, const std::string &dst, const std::string &msg)
+{
+    asio::ip::tcp::socket* socketOrigem;
+    asio::ip::tcp::socket* socketDestino;
+
+    for(auto itSockNick = mMapSockNickname.begin(); itSockNick != mMapSockNickname.end(); ++itSockNick)
+    {
+        if(*itSockNick->second == org)
+        {
+            socketOrigem = itSockNick->first;
+        }
+        if(*itSockNick->second == dst)
+        {
+            socketDestino = itSockNick->first;
+        }
+    }
+
+    Mensagem newMsg;
+    newMsg.setCabecalho(org, dst);
+    newMsg.setCorpo(msg);
+
+    sendMsg(socketOrigem, newMsg);
+    sendMsg(socketDestino, newMsg);
+
+//    mMapNickConexao[org]->enviarMensagem(encapsularMsg(org, dst, msg));
+//    mMapNickConexao[dst]->enviarMensagem(encapsularMsg(org, dst, msg));
 }

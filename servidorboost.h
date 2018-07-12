@@ -13,13 +13,23 @@
 
 using namespace boost;
 
+typedef std::pair<asio::ip::tcp::socket*, std::string> pairSock_ptrStr;
+
 class ServidorBoost
 {
-public:
+
+
+private:
     enum delay{
         min = 100,
         max = 200
     };
+
+    enum tipoConexao{
+        CONECTADO,
+        DESCONECTADO
+    };
+
 public:
     ServidorBoost();
 
@@ -29,16 +39,20 @@ public:
 
 private:
     void disconnectUser(asio::ip::tcp::socket* userSock);
-    void tratarMensagem(Mensagem &msg);
     void sendMsg(asio::ip::tcp::socket *userSock, Mensagem &msg);
 
-    void addNickname(asio::ip::tcp::socket *userSock, std::string* nick);
+    bool addNickname(asio::ip::tcp::socket *userSock, std::string* nick);
     std::string* nickname(asio::ip::tcp::socket *userSock);
 
-    asio::ip::tcp::socket* socketOrigem(Mensagem &msg);
+    bool validarNickname(const std::string &nick);
+
+    void sendBroadcast(asio::ip::tcp::socket* sock, const std::string &org, const tipoConexao& tipo);
+
+    void redirecionarMensagem(const std::string &org, const std::string &dst, const std::string &msg);
 
 
 private:
+
     const std::string BROADCAST_KEY = "$$$";
     const std::string BROADCAST_CONECTADO = "$c$";
     const std::string BROADCAST_DESCONECTADO = "$d$";
@@ -48,9 +62,12 @@ private:
     boost::mutex mMtx;
 
     std::map<asio::ip::tcp::socket*, std::string*> mMapSockNickname;
-    std::queue<std::string> mMsgQueue;
+    std::queue<pairSock_ptrStr> mMsgQueue;
 
-//    const unsigned int MESSAGE_SIZE = 1024;
+
+
+
+
 };
 
 #endif // SERVIDORBOOST_H
