@@ -1,0 +1,67 @@
+#ifndef MENSAGEM_H
+#define MENSAGEM_H
+
+#include <string>
+#include <algorithm>
+
+/**
+ * @brief The Mensagem class
+ * Organiza o corpo e o cabecalho da mensagem
+ *
+ * Padroes de envio:
+ *
+ * #origem#destino#:mensagem    //padrão
+ *
+ * #origem##:                   //confirmação de nickname
+ *
+ * #$$$$#$c$#:user1;user2;user3 //brodcast para usuário conectado
+ *
+ * #$$$$#$d$#:user1;user2;user3 //broadcast para usuário desconectado
+ *
+ * ###:                         //nickname invalido
+ *
+ */
+class Mensagem
+{
+public:
+    const std::string BROADCAST_KEY = "$$$";
+    const std::string BROADCAST_CONECTADO = "$c$";
+    const std::string BROADCAST_DESCONECTADO = "$d$";
+
+public:
+    Mensagem(const std::string &msg);
+
+    void setCabecalho(const std::string& origem, const std::string& destino);
+
+    void setCorpo(const std::string &corpo);
+
+    std::string mensagemEstruturada();
+
+    bool validarEstruturaMensagem(const std::string &msg);
+
+    std::string origem() const;
+    void setOrigem(const std::string &msg);
+
+    std::string destino() const;
+    void setDestino(const std::string &msg);
+
+    std::string mensagem() const;
+    void setMensagem(const std::string &msg);
+
+private:
+    std::string cabecalho() const;
+    std::string corpo() const;
+
+
+private:
+
+    std::string mCabecalho;
+    std::string mCorpo;
+
+    std::string mOrigem;
+    std::string mDestino;
+    std::string mMensagem;
+
+};
+
+#endif // MENSAGEM_H
