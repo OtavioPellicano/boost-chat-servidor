@@ -7,6 +7,7 @@
 #include <functional>
 #include <algorithm>
 #include "mensagem.h"
+#include "log.h"
 
 #include <boost/asio.hpp>
 #include <boost/thread.hpp>
@@ -21,7 +22,6 @@ class ServidorBoost
 
 private:
     enum delay{
-        min = 100,
         max = 200
     };
 
@@ -36,6 +36,7 @@ public:
     void incommingConnectionLoop(); //Aguarda novo cliente
     void readyReadLoop();       //Aguarda mensagem no buff
     void messageQueueLoop();    //Fila de mensagem
+    void logQueueLoop();        //fila de log
 
 private:
     void disconnectUser(asio::ip::tcp::socket* userSock);
@@ -50,7 +51,6 @@ private:
 
     void redirecionarMensagem(const std::string &org, const std::string &dst, const std::string &msg);
 
-
 private:
 
     const std::string BROADCAST_KEY = "$$$";
@@ -64,9 +64,9 @@ private:
     std::map<asio::ip::tcp::socket*, std::string*> mMapSockNickname;
     std::queue<pairSock_ptrStr> mMsgQueue;
 
+    std::queue<Mensagem> mLogQueue;
 
-
-
+    Log mLog;
 
 };
 

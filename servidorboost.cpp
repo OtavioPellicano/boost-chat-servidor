@@ -25,7 +25,6 @@ void ServidorBoost::incommingConnectionLoop()
 
     }
 
-
 }
 
 void ServidorBoost::readyReadLoop()
@@ -48,12 +47,6 @@ void ServidorBoost::readyReadLoop()
                         std::string strMsg;
                         std::istream inputStream(&buf);
                         std::getline(inputStream, strMsg);
-
-//                        if(strMsg.find("exit") != std::string::npos)
-//                        {
-//                            disconnectUser(itMapSockNick->first);
-//                            break;
-//                        }
 
                         std::cout << "Coloquei na pilha: " << strMsg << std::endl;
 
@@ -116,6 +109,24 @@ void ServidorBoost::messageQueueLoop()
             mMtx.unlock();
         }
         //std::cout << "message Queue" << std::endl;
+        boost::this_thread::sleep( boost::posix_time::millisec(delay::max));
+    }
+}
+
+void ServidorBoost::logQueueLoop()
+{
+    for(;;)
+    {
+        if(!mLogQueue.empty())
+        {
+            auto msg = mLogQueue.front();
+
+            mLog.salvarLog(msg.origem(), msg.destino(), msg.mensagem());
+
+            mLogQueue.pop();    //não preciso dar lock aqui, essa fila só será utilizada por uma thread
+        }
+
+        //Para casa haja multiplos salvamentos
         boost::this_thread::sleep( boost::posix_time::millisec(delay::max));
     }
 }
@@ -240,6 +251,8 @@ void ServidorBoost::sendBroadcast(asio::ip::tcp::socket *sock, const std::string
         sendMsg(itSockNick->first, msg);
     }
 
+    mLogQueue.push(msg);
+
 }
 
 void ServidorBoost::redirecionarMensagem(const std::string &org, const std::string &dst, const std::string &msg)
@@ -266,6 +279,6 @@ void ServidorBoost::redirecionarMensagem(const std::string &org, const std::stri
     sendMsg(socketOrigem, newMsg);
     sendMsg(socketDestino, newMsg);
 
-//    mMapNickConexao[org]->enviarMensagem(encapsularMsg(org, dst, msg));
-//    mMapNickConexao[dst]->enviarMensagem(encapsularMsg(org, dst, msg));
+    mLogQueue.push(newMsg);
+
 }

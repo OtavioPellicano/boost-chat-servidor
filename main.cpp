@@ -15,16 +15,16 @@ int main()
 
     boost::thread t3(std::bind(&ServidorBoost::messageQueueLoop, srv));
 
+    boost::thread t4(std::bind(&ServidorBoost::logQueueLoop, srv));
+
 
     boost::thread_group threads;
     threads.add_thread(&t1);
     threads.add_thread(&t2);
     threads.add_thread(&t3);
+    threads.add_thread(&t4);
 
     threads.join_all();
-
-//    threads.create_thread(boost::bind(ServidorBoost::incommingConnectionLoop(), &srv));
-
 
     return 0;
 }
