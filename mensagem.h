@@ -18,18 +18,15 @@
  *
  * #$$$$#$d$#:user1;user2;user3 //broadcast para usuário desconectado
  *
- * ###:                         //nickname invalido
+ * ###:                         //nickname invalido ou qualquer msg invalida
  *
  */
+
+
 class Mensagem
 {
 public:
-    const std::string BROADCAST_KEY = "$$$";
-    const std::string BROADCAST_CONECTADO = "$c$";
-    const std::string BROADCAST_DESCONECTADO = "$d$";
-
-public:
-    Mensagem(const std::string &msg);
+    Mensagem(const std::string &msg = "");
 
     void setCabecalho(const std::string& origem, const std::string& destino);
 
@@ -40,18 +37,19 @@ public:
     bool validarEstruturaMensagem(const std::string &msg);
 
     std::string origem() const;
-    void setOrigem(const std::string &msg);
 
     std::string destino() const;
-    void setDestino(const std::string &msg);
 
     std::string mensagem() const;
-    void setMensagem(const std::string &msg);
+
+    bool empty() const;
 
 private:
     std::string cabecalho() const;
     std::string corpo() const;
-
+    void setMensagem(const std::string &msg);
+    void setDestino(const std::string &msg);
+    void setOrigem(const std::string &msg);
 
 private:
 

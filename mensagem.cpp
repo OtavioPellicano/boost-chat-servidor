@@ -115,3 +115,11 @@ void Mensagem::setMensagem(const std::string &msg)
 
     mMensagem = string(itFirst + 1, str.end());
 }
+
+bool Mensagem::empty() const
+{
+    if(origem().empty() && destino().empty() && corpo().empty())
+        return true;
+
+    return false;
+}
