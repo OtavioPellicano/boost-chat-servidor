@@ -214,11 +214,11 @@ void ServidorBoost::sendBroadcast(asio::ip::tcp::socket *sock, const std::string
 
     if(tipo == CONECTADO)
     {
-        msg.setCabecalho(org, BROADCAST_CONECTADO);
+        msg.setCabecalho(BROADCAST_KEY, BROADCAST_CONECTADO);
     }
     else
     {
-        msg.setCabecalho(org, BROADCAST_DESCONECTADO);
+        msg.setCabecalho(BROADCAST_KEY, BROADCAST_DESCONECTADO);
     }
 
     //carregando mensagens
