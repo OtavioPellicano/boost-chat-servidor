@@ -138,7 +138,7 @@ void ServidorBoost::disconnectUser(asio::ip::tcp::socket *userSock)
         }
     }
 
-    sendBroadcast(userSock, "teste", DESCONECTADO);
+    sendBroadcast(userSock, *nickname(userSock), DESCONECTADO);
     userSock->shutdown(asio::ip::tcp::socket::shutdown_both);
     userSock->close();
 
